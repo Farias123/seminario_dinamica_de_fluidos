@@ -17,17 +17,6 @@ const double density_he = 0.1785; //kg/m3
 const double r_ = pow(mass_he/(8*density_he), 1.0/3.0) - radius_he;
 
 
-
-
-int set_value_vector(double *vector, double x, double y, double z){
-// recreate as vector class
-  vector[0] = x;
-  vector[1] = y;
-  vector[2] = z;
-
-  return 0;
-}
-
 void update_positions(){
 // create class to solve verlet
   cout << "Verlet + colisões";
@@ -44,21 +33,31 @@ void save_position_file(){
 
 double simulate_n_particles(int N_, int Nx){
   //N = Nx*N_^2
+
   const double sphere_radius = N_*(radius_he + r_)/2.0;
 
-  cout << "N_ = "<< N_<<"\nR =" << sphere_radius << "\n";
+  auto idx = [N_, Nx](int i, int j, int k, int dim){
+    return  (N_*(N_*i + j) + k)*3 + dim;
+  };
+
+  cout << "N_ = "<< N_<<"\nR = " << sphere_radius << "\n";
 
   const double x0 = radius_he + r_ - 4.0*sphere_radius, y0 = radius_he + r_ - 2.0*sphere_radius, z0 = radius_he + r_ - 2.0*sphere_radius;
 
-  double positions[Nx][N_][N_][3];
-  double velocities[Nx][N_][N_][3];
+  double* positions = new double[Nx*N_*N_*3];
+  double* velocities = new double[Nx*N_*N_*3];
 
   // initial conditions
   for(int i = 0; i < Nx; i += 1){
     for(int j = 0; j < N_; j += 1){
       for(int k = 0; k < N_; k += 1){
-        set_value_vector(positions[i][j][k], x0 - 2*(radius_he + r_)*i, y0 + 2*(radius_he + r_)*j, z0 + 2*(radius_he + r_)*k);
-        set_value_vector(velocities[i][j][k], initial_speed_u, 0, 0);
+        positions[idx(i, j, k, 0)] = x0 - 2*(radius_he + r_)*i;
+        positions[idx(i, j, k, 1)] = y0 + 2*(radius_he + r_)*j;
+        positions[idx(i, j, k, 2)] = z0 + 2*(radius_he + r_)*k;
+
+        velocities[idx(i, j, k, 0)] = initial_speed_u;
+        velocities[idx(i, j, k, 1)] = 0.0;
+        velocities[idx(i, j, k, 2)] = 0.0;
 //        save_position_file();
       }
     }
@@ -66,6 +65,8 @@ double simulate_n_particles(int N_, int Nx){
 
 //  update_positions(positions, velocities);
 
+  delete[] positions;
+  delete[] velocities;
 
   return 0.0;
 }
