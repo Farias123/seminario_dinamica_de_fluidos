@@ -4,10 +4,10 @@
 
 using namespace std;
 
-const double dt = 1e-15;
-const double t_max = 1e-11; //s
+const double dt = 1e-13; //s
+const double t_max = 1e-10; //s
 
-const double initial_speed_u = 1.0; // m/s
+const double initial_speed_u = 1304.69; // m/s (T = 273.15 K)
 
 //atom variables
 const double n_avogadro = 6.0221408e23;
@@ -45,11 +45,6 @@ class simulate_n_particles{
       cout << "N_ = "<< N_<<"\nR = " << sphere_radius << "\n";
     };
 
-
-    int idx_grid(int i, int j, int k, int dim){
-      return  (N_*(N_*i + j) + k)*3 + dim;
-    }
-
     void save_position_file(int idx_x, double t){
       cout << "Baseado no número de partículas simuladas, se for menos que 10 mil, salva os dados de todas. Acima disso"
       << "sorteia 10 mil números aleatórios entre 0 e Nx*N_*N_. Se o índice da partícula (i + Nx*j + Nx*N_*k) é um dos"
@@ -57,13 +52,91 @@ class simulate_n_particles{
       << "passo criar arquivo com posições de todas as partículas";
     }
 
+    int idx_grid(int i, int j, int k, int dim){
+      return  (N_*(N_*i + j) + k)*3 + dim;
+    }
+
+    void manage_collisions(int idx_x1){
+      double x1, y1, z1, x2, y2, z2;
+      double vx1, vy1, vz1, vx2, vy2, vz2;
+      double alpha, beta, d, intersection, nx, ny, nz;
+      int idx_x2;
+
+      x1 = positions[idx_x1], y1 = positions[idx_x1 + 1], z1 = positions[idx_x1 + 2];
+      vx1 = velocities[idx_x1], vy1 = velocities[idx_x1 + 1], vz1 = velocities[idx_x1 + 2];
+      d = sqrt(pow(x1, 2) + pow(y1, 2) + pow(z1, 2)); //distance to origin (sphere with radius = R)
+
+      //collision with central sphere
+      if(d < radius_he + sphere_radius){
+        nx = - x1/d, ny = -y1/d, nz = - z1/d;
+
+        intersection = radius_he + sphere_radius - d;
+
+        // position correction before changing velocity
+        positions[idx_x1] = x1 - intersection*nx;
+        positions[idx_x1 + 1] = y1 - intersection*ny;
+        positions[idx_x1 + 2] = z1 - intersection*nz;
+
+        velocities[idx_x1] = vx1 - 2*nx*(vx1*nx + vy1*ny + vz1*nz);
+        velocities[idx_x1 + 1] = vy1 - 2*ny*(vx1*nx + vy1*ny + vz1*nz);
+        velocities[idx_x1 + 2] = vz1 - 2*nz*(vx1*nx + vy1*ny + vz1*nz);
+      }
+
+      // collisions between particles
+      for(int i = 0; i < Nx; i += 1){
+        for(int j = 0; j < N_; j += 1){
+          for(int k = 0; k < N_; k += 1){
+            idx_x2 = idx_grid(i, j, k, 0);
+
+            if(idx_x1 != idx_x2){
+              x1 = positions[idx_x1], y1 = positions[idx_x1 + 1], z1 = positions[idx_x1 + 2];
+              x2 = positions[idx_x2], y2 = positions[idx_x2 + 1], z2 = positions[idx_x2 + 2];
+              d = sqrt(pow(x2 - x1, 2) + pow(y2 - y1, 2) + pow(z2 - z1, 2)); //distance between particles
+
+              if(d < 2*radius_he){
+                nx = (x2 - x1)/d, ny = (y2 - y1)/d, nz = (z2 - z1)/d;
+
+                intersection = 2*radius_he - d;
+
+                // position correction before changing velocity
+                positions[idx_x1] = x1 - intersection/2*nx;
+                positions[idx_x1 + 1] = y1 - intersection/2*ny;
+                positions[idx_x1 + 2] = z1 - intersection/2*nz;
+
+                positions[idx_x2] = x2 + intersection/2*nx;
+                positions[idx_x2 + 1] = y2 + intersection/2*ny;
+                positions[idx_x2 + 2] = z2 + intersection/2*nz;
+
+                // velocities update
+                vx1 = velocities[idx_x1], vy1 = velocities[idx_x1 + 1], vz1 = velocities[idx_x1 + 2];
+                vx2 = velocities[idx_x2], vy2 = velocities[idx_x2 + 1], vz2 = velocities[idx_x2 + 2];
+
+                alpha = (vx2 - vx1)*nx + (vy2 - vy1)*ny + (vz2 - vz1)*nz; // factors come from vector projection
+                beta = (vx1 - vx2)*nx + (vy1 - vy2)*ny + (vz1 - vz2)*nz;
+
+                velocities[idx_x1] = vx1 + nx*alpha;
+                velocities[idx_x1 + 1] = vy1 + ny*alpha;
+                velocities[idx_x1 + 2] = vz1 + nz*alpha;
+
+                velocities[idx_x2] = vx2 + nx*beta;
+                velocities[idx_x2 + 1] = vy2 + ny*beta;
+                velocities[idx_x2 + 2] = vz2 + nz*beta;
+              }
+
+            }
+
+          }
+        }
+      }
+
+    }
+
     void euler_update(int idx_x){
       positions[idx_x] += velocities[idx_x]*dt;
       positions[idx_x + 1] += velocities[idx_x + 1]*dt;
       positions[idx_x + 2] += velocities[idx_x + 2]*dt;
 
-    //  velocities[idx_x]; Atualizar velocidade com colisao, para isso identificar colisao e depois resolver colisao
-
+      manage_collisions(idx_x);
     }
 
     void update_and_save(double t){
@@ -109,6 +182,9 @@ class simulate_n_particles{
       for(double t = 0; t < t_max; t += dt){
         update_and_save(t);
       }
+//      todo: salvar resultados de 1000 particulas ou todas caso a simulação tenha menos que 1000 (cada passo de tempo em um arquivo);
+//      dividir espaco em caixas para otimizar deteccao de colisao; calcular tempo aproximado para particula atravessar esfera, dt e R.
+
     }
 
 
