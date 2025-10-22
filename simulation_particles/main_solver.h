@@ -1,6 +1,13 @@
 #include <cmath>
 #include <vector>
 #include <iostream>
+#include <fstream>
+#include <random>
+#include <string>
+#include <sstream>
+#include <algorithm>
+#include <unordered_set>
+#include <filesystem>
 
 using namespace std;
 
@@ -18,6 +25,26 @@ const double density_he = 0.1785; //kg/m3
 //space between atoms surfaces and their square limit
 const double r_ = pow(mass_he/(8*density_he), 1.0/3.0) - radius_he;
 
+vector<int> generate_random_particle_ids(int N_particles){
+  srand(time(0));
+  vector<int> selected_particles;
+
+  if (N_particles <= 1000) {
+      for (int i = 0; i < N_particles; i += 1) {
+          selected_particles.push_back(i);
+      }
+  } else {
+      unordered_set<int> unique_particles;
+
+      while (unique_particles.size() < 1000) {
+        int random_number = rand() % N_particles;
+        unique_particles.insert(random_number);
+      }
+      selected_particles.assign(unique_particles.begin(), unique_particles.end());
+  }
+
+  return selected_particles;
+}
 
 class simulate_n_particles{
   public:
@@ -27,6 +54,8 @@ class simulate_n_particles{
 
     double* positions;
     double* velocities;
+    vector<int> saved_particles;
+    string folder_name;
 
     ~simulate_n_particles(){
       //destructor
@@ -39,17 +68,45 @@ class simulate_n_particles{
       sphere_radius = N_*(radius_he + r_)/2.0;
       x0 = radius_he + r_ - 4.0*sphere_radius, y0 = radius_he + r_ - 2.0*sphere_radius, z0 = radius_he + r_ - 2.0*sphere_radius;
 
+      saved_particles = generate_random_particle_ids(Nx*N_*N_);
+
+      stringstream temp_name;
+      temp_name << "./data/N_-" << N_ << "_Nx-" << Nx;
+      folder_name = temp_name.str();
+
+      if (filesystem::exists(folder_name)) {
+          filesystem::remove_all(folder_name);
+      }
+
+      create_save_folder();
+
       positions = new double[Nx*N_*N_*3];
       velocities = new double[Nx*N_*N_*3];
 
       cout << "N_ = "<< N_<<"\nR = " << sphere_radius << "\n";
     };
 
+    void create_save_folder(){
+      filesystem::create_directories(folder_name);
+
+      stringstream file_name;
+      file_name << folder_name << "/meta.txt";
+
+      ofstream meta_file(file_name.str());
+
+      meta_file << "r=" << radius_he << ", r\'=" << r_ << ", R=" << sphere_radius << ", dt=" << dt << "\n" << "format_step_files=idx, t, x, y, z";
+      meta_file.close();
+    }
+
     void save_position_file(int idx_x, double t){
-      cout << "Baseado no número de partículas simuladas, se for menos que 10 mil, salva os dados de todas. Acima disso"
-      << "sorteia 10 mil números aleatórios entre 0 e Nx*N_*N_. Se o índice da partícula (i + Nx*j + Nx*N_*k) é um dos"
-      << "sorteados, será salvo no arquivo do passo de tempo. Esquema: criar uma pasta com nome tendo os N_ e Nx, para cada"
-      << "passo criar arquivo com posições de todas as partículas";
+      if(find(saved_particles.begin(), saved_particles.end(), idx_x/3) != saved_particles.end()){ //particle is one of the random chosen to be saved
+        stringstream file_name;
+        file_name << folder_name << "/step_" << t/dt;
+
+        ofstream step_file(file_name.str(), std::ios::app);
+        step_file << idx_x/3 << ", " << t << ", " << positions[idx_x] << ", " << positions[idx_x + 1] << ", " << positions[idx_x + 2] << "\n";
+        step_file.close();
+      }
     }
 
     int idx_grid(int i, int j, int k, int dim){
@@ -148,9 +205,7 @@ class simulate_n_particles{
             idx_x = idx_grid(i, j, k, 0);
 
             euler_update(idx_x);
-//            save_position_file(idx_x, t);
-
-            cout << "N_ = " << N_ << ", idx x = " << idx_x << ", t = " << t << ", x = " << positions[idx_x] << ", y = " << positions[idx_x + 1] << ", z = " << positions[idx_x + 2] << "\n";
+            save_position_file(idx_x, t);
           }
         }
       }
@@ -170,7 +225,7 @@ class simulate_n_particles{
             velocities[idx_x] = initial_speed_u;
             velocities[idx_x + 1] = 0.0;
             velocities[idx_x + 2] = 0.0;
-//            save_position_file();
+            save_position_file(idx_x, 0.0);
           }
         }
       }
@@ -179,13 +234,10 @@ class simulate_n_particles{
     void main(){
       set_initial_conditions();
 
-      for(double t = 0; t < t_max; t += dt){
+      for(double t = dt; t < t_max; t += dt){
         update_and_save(t);
       }
-//      todo: salvar resultados de 1000 particulas ou todas caso a simulação tenha menos que 1000 (cada passo de tempo em um arquivo);
-//      dividir espaco em caixas para otimizar deteccao de colisao; calcular tempo aproximado para particula atravessar esfera, dt e R.
+//      todo: dividir espaco em caixas para otimizar deteccao de colisao; calcular tempo aproximado para particula atravessar esfera, dt e R.
 
     }
-
-
 };
