@@ -94,7 +94,8 @@ class simulate_n_particles{
 
       ofstream meta_file(file_name.str());
 
-      meta_file << "r=" << radius_he << ", r\'=" << r_ << ", R=" << sphere_radius << ", dt=" << dt << "\n" << "format_step_files=idx, t, x, y, z";
+      meta_file << "r = " << radius_he << "; r_ = " << r_ << "; R = " << sphere_radius << "; dt = " << dt
+      << "; U = "<< initial_speed_u << "; format_step_files = idx, t, x, y, z";
       meta_file.close();
     }
 
