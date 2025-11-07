@@ -11,10 +11,10 @@
 
 using namespace std;
 
-const double dt = 1e-13; //s
-const double t_max = 1e-10; //s
-
 const double initial_speed_u = 1304.69; // m/s (T = 273.15 K)
+
+const double dt = 1e-13; //s
+
 
 //atom variables
 const double n_avogadro = 6.0221408e23;
@@ -51,6 +51,7 @@ class simulate_n_particles{
     int N_, Nx;
     double sphere_radius;
     double x0, y0, z0;
+    const double t_max = 2*abs(x0 - 2*(radius_he + r_)*Nx)/initial_speed_u; //s
 
     double* positions;
     double* velocities;

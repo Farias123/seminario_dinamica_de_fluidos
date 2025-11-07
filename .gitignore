@@ -1,1 +1,6 @@
 .idea
+statistical_analysis/__pycache__/
+statistical_analysis/.ipynb_checkpoints/
+
+simulation_particles/data
+simulation_particles/main

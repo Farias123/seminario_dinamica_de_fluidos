@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 
-def parse_meta(meta_str):
+def parse_meta(meta_str: str) -> dict:
     data = meta_str.split(";")
     data = [x.split(" = ") for x in data]
 
@@ -16,7 +16,7 @@ def parse_meta(meta_str):
     return data_dict
 
 
-def data_Nx_N_(N_ : int, Nx : int):
+def data_Nx_N_(Nx : int, N_ : int) -> dict:
     path_to_folder = os.path.join("..", "simulation_particles", "data", f"N_-{N_}_Nx-{Nx}")
     data_files = os.listdir(path_to_folder)
     data_files.remove("meta.txt")
@@ -49,4 +49,4 @@ def data_Nx_N_(N_ : int, Nx : int):
 
 
 if __name__ == "__main__":
-    data_Nx_N_(2, 1)
+    data_Nx_N_(1, 2)
