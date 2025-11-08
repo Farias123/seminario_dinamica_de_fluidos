@@ -2,14 +2,16 @@
 #include <vector>
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <random>
 #include <string>
-#include <sstream>
 #include <algorithm>
 #include <unordered_set>
 #include <filesystem>
+#include <chrono>
 
 using namespace std;
+using namespace std::chrono;
 
 const double initial_speed_u = 1304.69; // m/s (T = 273.15 K)
 
@@ -58,6 +60,8 @@ class simulate_n_particles{
     vector<int> saved_particles;
     string folder_name;
 
+    high_resolution_clock::time_point simulation_start_time = high_resolution_clock::now();
+
     ~simulate_n_particles(){
       //destructor
       delete[] positions;
@@ -79,7 +83,7 @@ class simulate_n_particles{
           filesystem::remove_all(folder_name);
       }
 
-      create_save_folder();
+      filesystem::create_directories(folder_name);
 
       positions = new double[Nx*N_*N_*3];
       velocities = new double[Nx*N_*N_*3];
@@ -87,16 +91,18 @@ class simulate_n_particles{
       cout << "N_ = "<< N_<<"\nR = " << sphere_radius << "\n";
     };
 
-    void create_save_folder(){
-      filesystem::create_directories(folder_name);
-
+    void create_meta_file(){
       stringstream file_name;
+
       file_name << folder_name << "/meta.txt";
 
       ofstream meta_file(file_name.str());
 
+      auto simulation_end_time = high_resolution_clock::now();
+      auto simulation_duration = duration_cast<milliseconds>(simulation_end_time - simulation_start_time);
+
       meta_file << "r = " << radius_he << "; r_ = " << r_ << "; R = " << sphere_radius << "; dt = " << dt
-      << "; U = "<< initial_speed_u << "; format_step_files = idx, x, y, z";
+      << "; U = "<< initial_speed_u <<"; simulation_time(ms) = "<< to_string(simulation_duration.count()) << "; format_step_files = idx, x, y, z";
       meta_file.close();
     }
 
@@ -239,7 +245,9 @@ class simulate_n_particles{
       for(double t = dt; t < t_max; t += dt){
         update_and_save(t);
       }
-//      todo: dividir espaco em caixas para otimizar deteccao de colisao; calcular tempo aproximado para particula atravessar esfera, dt e R.
+
+      create_meta_file();
+//      todo: dividir espaco em caixas para otimizar deteccao de colisao;
 
     }
 };
