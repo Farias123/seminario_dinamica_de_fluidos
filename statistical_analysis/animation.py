@@ -13,25 +13,25 @@ def animate_Nx_N_(data_dict: dict, particles_to_animate : list) -> None:
   scene.camera.axis = vector(-5*R, -5*R, -5*R)
 
   vpython_bodies = []
-  initial_positions = filtered_steps_data[filtered_steps_data['t'] == 0]
+  initial_positions = filtered_steps_data[filtered_steps_data["step"] == 0]
   for i in particles_to_animate:
     position_i = initial_positions.loc[initial_positions["idx"] == i, ["x", "y", "z"]]
     x, y, z = position_i.values[0]
     vpython_bodies.append(sphere(pos=vector(x, y, z), make_trail=True,
                                  radius=data_dict['r'], retain=60, color=color.red))
 
-  def update_positions(t: float) -> None:
-    initial_positions = filtered_steps_data[filtered_steps_data['t'] == t]
+  def update_positions(step: int) -> None:
+    positions = filtered_steps_data[filtered_steps_data["step"] == step]
 
     for i in particles_to_animate:
-      position_i = initial_positions.loc[initial_positions["idx"] == i, ["x", "y", "z"]]
+      position_i = positions.loc[positions["idx"] == i, ["x", "y", "z"]]
       x, y, z = position_i.values[0]
       vpython_bodies[i].pos = vector(x, y, z)
 
-  t_range = steps_data.loc[steps_data["idx"] == 0, "t"].values
-  for t in t_range:
+  step_range = filtered_steps_data.loc[steps_data["idx"] == 0, "step"].values
+  for step in step_range:
     rate(30)
-    update_positions(t)
+    update_positions(step)
 
 
 if __name__ == '__main__':

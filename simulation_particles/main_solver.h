@@ -51,7 +51,7 @@ class simulate_n_particles{
     int N_, Nx;
     double sphere_radius;
     double x0, y0, z0;
-    const double t_max = 2*abs(x0 - 2*(radius_he + r_)*Nx)/initial_speed_u; //s
+    const double t_max = abs(x0 - 2*(radius_he + r_)*Nx)/initial_speed_u; //s
 
     double* positions;
     double* velocities;
@@ -96,7 +96,7 @@ class simulate_n_particles{
       ofstream meta_file(file_name.str());
 
       meta_file << "r = " << radius_he << "; r_ = " << r_ << "; R = " << sphere_radius << "; dt = " << dt
-      << "; U = "<< initial_speed_u << "; format_step_files = idx, t, x, y, z";
+      << "; U = "<< initial_speed_u << "; format_step_files = idx, x, y, z";
       meta_file.close();
     }
 
@@ -106,7 +106,7 @@ class simulate_n_particles{
         file_name << folder_name << "/step_" << t/dt;
 
         ofstream step_file(file_name.str(), std::ios::app);
-        step_file << idx_x/3 << ", " << t << ", " << positions[idx_x] << ", " << positions[idx_x + 1] << ", " << positions[idx_x + 2] << "\n";
+        step_file << idx_x/3 << ", " << positions[idx_x] << ", " << positions[idx_x + 1] << ", " << positions[idx_x + 2] << "\n";
         step_file.close();
       }
     }

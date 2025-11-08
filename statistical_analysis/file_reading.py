@@ -10,6 +10,7 @@ def parse_meta(meta_str: str) -> dict:
         if str.strip(k) == "format_step_files":
             data_dict["format_step_files"] = v.split(", ")
             data_dict["steps_data"] = {x:[] for x in v.split(", ")}
+            data_dict["steps_data"]["step"] = []
 
             continue
         data_dict[str.strip(k)] = float(v)
@@ -42,6 +43,7 @@ def data_Nx_N_(Nx : int, N_ : int) -> dict:
             for i in range(len(items)):
                 variable_name = format_step_files[i]
                 data_dict["steps_data"][variable_name].append(items[i])
+            data_dict["steps_data"]["step"].append(n)
 
     data_dict["steps_data"] = pd.DataFrame(data_dict["steps_data"])
 
@@ -49,4 +51,4 @@ def data_Nx_N_(Nx : int, N_ : int) -> dict:
 
 
 if __name__ == "__main__":
-    data_Nx_N_(1, 2)
+    data_Nx_N_(100, 2)
