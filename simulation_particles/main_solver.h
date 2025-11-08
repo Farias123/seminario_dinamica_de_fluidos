@@ -51,7 +51,7 @@ class simulate_n_particles{
     int N_, Nx;
     double sphere_radius;
     double x0, y0, z0;
-    const double t_max = abs(x0 - 2*(radius_he + r_)*Nx)/initial_speed_u; //s
+    const double t_max = 2*abs(x0 - 2*(radius_he + r_)*Nx)/initial_speed_u; //s
 
     double* positions;
     double* velocities;
