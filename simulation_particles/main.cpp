@@ -1,7 +1,7 @@
 #include "main_solver.h"
 
 int main(){
-  int Nx = 100; //number of layers in x
+  int Nx = 10; //number of layers in x
   int max_N_ = 3;
 
   for(int n = 3; n <= max_N_; n += 1){
