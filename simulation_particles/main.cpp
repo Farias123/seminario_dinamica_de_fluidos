@@ -1,11 +1,10 @@
 #include "main_solver.h"
 
 int main(){
-  int Nx = 10; //number of layers in x
-  int max_N_ = 3;
+  int max_N = 10;
 
-  for(int n = 3; n <= max_N_; n += 1){
-    simulate_n_particles simulator(n, Nx);
+  for(int n = 5; n <= max_N; n += 1){
+    simulate_n_particles simulator(n);
     simulator.main();
   }
 

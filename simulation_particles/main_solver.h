@@ -1,4 +1,5 @@
 #include <cmath>
+#include <array>
 #include <vector>
 #include <iostream>
 #include <fstream>
@@ -16,16 +17,13 @@ using namespace std::chrono;
 const double initial_speed_u = 1304.69; // m/s (T = 273.15 K)
 
 const double dt = 1e-13; //s
-//const double sphere_radius = 8.34816651e-7; //m
+const double sphere_radius = 8.34816651e-7; //m
 
 //atom variables
 const double n_avogadro = 6.0221408e23;
 const double mass_he = 0.004002602/n_avogadro; //kg
 const double radius_he = 1.4e-10; //m
 const double density_he = 0.1785; //kg/m3
-
-//space between atoms surfaces and their square limit
-const double r_ = pow(mass_he/(8*density_he), 1.0/3.0) - radius_he;
 
 vector<int> generate_random_particle_ids(int N_particles){
   srand(time(0));
@@ -50,10 +48,9 @@ vector<int> generate_random_particle_ids(int N_particles){
 
 class simulate_n_particles{
   public:
-    int N_, Nx, N;
-    double sphere_radius;
-    double x0, y0, z0;
-    const double t_max = 2*abs(x0 - 2*(radius_he + r_)*Nx)/initial_speed_u; //s
+    int N;
+    double x_a, x_b, y_a, y_b, z_a, z_b;
+    const double t_max; //s
 
     double* x;
     double* y;
@@ -77,15 +74,16 @@ class simulate_n_particles{
       delete[] vz;
     }
 
-    simulate_n_particles(int N_, int Nx): N_(N_), Nx(Nx), N(Nx*N_*N_){
+    simulate_n_particles(int N): N(N), t_max(12*sphere_radius/(initial_speed_u)){
       //constructor
-      sphere_radius = N_*(radius_he + r_)/2.0;
-      x0 = radius_he + r_ - 4.0*sphere_radius, y0 = radius_he + r_ - 2.0*sphere_radius, z0 = radius_he + r_ - 2.0*sphere_radius;
+      x_a = -6.0*sphere_radius, x_b = -2.0*sphere_radius;
+      y_a = -2.0*sphere_radius, y_b = 2.0*sphere_radius;
+      z_a = -2.0*sphere_radius, z_b = 2.0*sphere_radius;
 
-      saved_particles = generate_random_particle_ids(Nx*N_*N_);
+      saved_particles = generate_random_particle_ids(N);
 
       stringstream temp_name;
-      temp_name << "./data/N_-" << N_ << "_Nx-" << Nx;
+      temp_name << "./data/N-" << N;
       folder_name = temp_name.str();
 
       if (filesystem::exists(folder_name)) {
@@ -93,14 +91,14 @@ class simulate_n_particles{
       }
 
       filesystem::create_directories(folder_name);
-      x = new double[Nx*N_*N_];
-      y = new double[Nx*N_*N_];
-      z = new double[Nx*N_*N_];
-      vx = new double[Nx*N_*N_];
-      vy = new double[Nx*N_*N_];
-      vz = new double[Nx*N_*N_];
+      x = new double[N];
+      y = new double[N];
+      z = new double[N];
+      vx = new double[N];
+      vy = new double[N];
+      vz = new double[N];
 
-      cout << "N_ = "<< N_<<"\nR = " << sphere_radius << "\n";
+      cout << "N = "<< N << "\n";
     };
 
     void create_meta_file(){
@@ -113,7 +111,7 @@ class simulate_n_particles{
       auto simulation_end_time = high_resolution_clock::now();
       auto simulation_duration = duration_cast<milliseconds>(simulation_end_time - simulation_start_time);
 
-      meta_file << "r = " << radius_he << "; r_ = " << r_ << "; R = " << sphere_radius << "; dt = " << dt
+      meta_file << "r = " << radius_he << "; R = " << sphere_radius << "; dt = " << dt
       << "; U = "<< initial_speed_u <<"; simulation_time(ms) = "<< to_string(simulation_duration.count()) << "; format_step_files = idx, x, y, z";
       meta_file.close();
     }
@@ -129,10 +127,6 @@ class simulate_n_particles{
         }
       }
       step_file.close();
-    }
-
-    int idx_grid(int i, int j, int k){
-      return  N_*(N_*i + j) + k;
     }
 
     void manage_collisions(int idx_p1){
@@ -162,7 +156,7 @@ class simulate_n_particles{
       }
 
       // collisions between particles
-      for(int idx_p2 = 0; idx_p2 < Nx; idx_p2 += 1){
+      for(int idx_p2 = 0; idx_p2 < N; idx_p2 += 1){
         if(idx_p1 != idx_p2){
           x2 = x[idx_p2], y2 = y[idx_p2], z2 = z[idx_p2];
           d = sqrt(pow(x2 - x1, 2) + pow(y2 - y1, 2) + pow(z2 - z1, 2)); //distance between particles
@@ -215,23 +209,64 @@ class simulate_n_particles{
       save_position_file(t);
     }
 
+    array<double, 3> generate_random_pos(){
+      double temp_x, temp_y, temp_z;
+
+      default_random_engine generator(time(0));
+      uniform_real_distribution<double> x_distribution(x_a, x_b);
+      uniform_real_distribution<double> y_distribution(y_a, y_b);
+      uniform_real_distribution<double> z_distribution(z_a, z_b);
+
+      temp_x = x_distribution(generator);
+      temp_y = y_distribution(generator);
+      temp_z = z_distribution(generator);
+
+      return {temp_x, temp_y, temp_z};
+    }
+
     void set_initial_conditions(){
-      int idx_particle;
-      for(int i = 0; i < Nx; i += 1){
-        for(int j = 0; j < N_; j += 1){
-          for(int k = 0; k < N_; k += 1){
-            idx_particle = idx_grid(i, j, k);
+      double temp_x, temp_y, temp_z;
+      double x2, y2, z2;
 
-            x[idx_particle] = x0 - 2*(radius_he + r_)*i;
-            y[idx_particle] = y0 + 2*(radius_he + r_)*j;
-            z[idx_particle] = z0 + 2*(radius_he + r_)*k;
+      double distance_to_existing_particle;
+      array<double, 3> temp_pos;
 
-            vx[idx_particle] = initial_speed_u;
-            vy[idx_particle] = 0.0;
-            vz[idx_particle] = 0.0;
+      bool pos_is_valid;
+
+      for(int idx_p1 = 0; idx_p1 < N; idx_p1 += 1){
+
+        pos_is_valid = false;
+        while(pos_is_valid == false){
+          temp_pos = generate_random_pos();
+          temp_x = temp_pos[0];
+          temp_y = temp_pos[1];
+          temp_z = temp_pos[2];
+
+          pos_is_valid = true;
+
+          for(int idx_p2 = 0; idx_p2 < idx_p1; idx_p2 += 1){
+            x2 = x[idx_p2], y2 = y[idx_p2], z2 = z[idx_p2];
+
+            distance_to_existing_particle = sqrt(pow(x2 - temp_x, 2) + pow(y2 - temp_y, 2) + pow(z2 - temp_z, 2));
+
+            if(distance_to_existing_particle < 2*radius_he){
+              pos_is_valid = false;
+              break;
+            }
+          }
+
+          if (pos_is_valid){
+            x[idx_p1] = temp_x;
+            y[idx_p1] = temp_y;
+            z[idx_p1] = temp_z;
           }
         }
+
+        vx[idx_p1] = initial_speed_u;
+        vy[idx_p1] = 0.0;
+        vz[idx_p1] = 0.0;
       }
+
       save_position_file(0.0);
     }
 

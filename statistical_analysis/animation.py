@@ -1,8 +1,8 @@
 from vpython import *
 
-from file_reading import data_Nx_N_
+from file_reading import data_N
 
-def animate_Nx_N_(data_dict: dict, particles_to_animate : list) -> None:
+def animate_N(data_dict: dict, particles_to_animate : list) -> None:
   steps_data = data_dict["steps_data"]
   filtered_steps_data = steps_data[steps_data["idx"].isin(particles_to_animate)]
 
@@ -35,10 +35,9 @@ def animate_Nx_N_(data_dict: dict, particles_to_animate : list) -> None:
 
 
 if __name__ == '__main__':
-  Nx = 10
-  N_ = 10
+  N = 10
 
-  data_dict = data_Nx_N_(Nx, N_)
-  particles_to_animate = list(range(100))
+  data_dict = data_N(N)
+  particles_to_animate = list(range(10))
 
-  animate_Nx_N_(data_dict, particles_to_animate)
+  animate_N(data_dict, particles_to_animate)
