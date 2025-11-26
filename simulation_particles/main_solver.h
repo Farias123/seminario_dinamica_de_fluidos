@@ -155,6 +155,31 @@ class simulate_n_particles{
         vz[idx_p1] = vz1 - 2*nz*(vx1*nx + vy1*ny + vz1*nz);
       }
 
+      //collision walls
+      d = y_b - y[idx_p1]; //right
+      if(d < radius_he){
+        y[idx_p1] -= (radius_he - d);
+        vy[idx_p1] = - vy[idx_p1];
+      }
+
+      d = - (y_a - y[idx_p1]); //left
+      if(d < radius_he){
+        y[idx_p1] += (radius_he - d);
+        vy[idx_p1] = - vy[idx_p1];
+      }
+
+      d = z_b - z[idx_p1]; //up
+      if(d < radius_he){
+        z[idx_p1] -= (radius_he - d);
+        vz[idx_p1] = - vz[idx_p1];
+      }
+
+      d = - (z_a - z[idx_p1]); //down
+      if(d < radius_he){
+        z[idx_p1] += (radius_he - d);
+        vz[idx_p1] = - vz[idx_p1];
+      }
+
       // collisions between particles
       for(int idx_p2 = 0; idx_p2 < N; idx_p2 += 1){
         if(idx_p1 != idx_p2){
