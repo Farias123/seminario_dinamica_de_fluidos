@@ -16,7 +16,7 @@ using namespace std::chrono;
 
 const double initial_speed_u = 1304.69; // m/s (T = 273.15 K)
 
-const double dt = 1e-13; //s
+const double dt = 1e-11; //s
 const double sphere_radius = 8.34816651e-7; //m
 
 //atom variables
@@ -74,9 +74,9 @@ class simulate_n_particles{
       delete[] vz;
     }
 
-    simulate_n_particles(int N): N(N), t_max(12*sphere_radius/(initial_speed_u)){
+    simulate_n_particles(int N): N(N), t_max(10*sphere_radius/(initial_speed_u)){
       //constructor
-      x_a = -6.0*sphere_radius, x_b = -2.0*sphere_radius;
+      x_a = -5.0*sphere_radius, x_b = -1.0*sphere_radius;
       y_a = -2.0*sphere_radius, y_b = 2.0*sphere_radius;
       z_a = -2.0*sphere_radius, z_b = 2.0*sphere_radius;
 
@@ -212,10 +212,12 @@ class simulate_n_particles{
     array<double, 3> generate_random_pos(){
       double temp_x, temp_y, temp_z;
 
-      default_random_engine generator(time(0));
-      uniform_real_distribution<double> x_distribution(x_a, x_b);
-      uniform_real_distribution<double> y_distribution(y_a, y_b);
-      uniform_real_distribution<double> z_distribution(z_a, z_b);
+      static std::random_device rd; //numeros aleatorios de alta precisao
+      static std::mt19937 generator(rd());
+
+      uniform_real_distribution<double> x_distribution(x_a + radius_he, x_b - radius_he);
+      uniform_real_distribution<double> y_distribution(y_a + radius_he, y_b - radius_he);
+      uniform_real_distribution<double> z_distribution(z_a + radius_he, z_b - radius_he);
 
       temp_x = x_distribution(generator);
       temp_y = y_distribution(generator);
