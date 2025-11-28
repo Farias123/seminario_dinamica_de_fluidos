@@ -3,6 +3,7 @@ from vpython import *
 from file_reading import data_N
 
 def animate_N(data_dict: dict, particles_to_animate : list) -> None:
+  print("Iniciando animação")
   steps_data = data_dict["steps_data"]
   filtered_steps_data = steps_data[steps_data["idx"].isin(particles_to_animate)]
 
@@ -29,15 +30,17 @@ def animate_N(data_dict: dict, particles_to_animate : list) -> None:
       vpython_bodies[i].pos = vector(x, y, z)
 
   step_range = set(filtered_steps_data["step"])
+  step_range = [step for step in step_range if step%10 == 0]
   for step in step_range:
     rate(30)
     update_positions(step)
 
 
 if __name__ == '__main__':
-  N = 10
+  N = 15000
 
   data_dict = data_N(N)
-  particles_to_animate = list(range(10))
+  particles = list(set(data_dict["steps_data"]["idx"]))
+  particles_to_animate = particles[30:70]
 
   animate_N(data_dict, particles_to_animate)

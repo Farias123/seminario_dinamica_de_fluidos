@@ -49,8 +49,12 @@ vector<int> generate_random_particle_ids(int N_particles){
 class simulate_n_particles{
   public:
     int N;
-    double x_a, x_b, y_a, y_b, z_a, z_b;
+    const double x_a, x_b, y_a, y_b, z_a, z_b;
     const double t_max; //s
+    const double Lcell;
+
+    const int Cx, Cy, Cz;
+    const long int N_cells_total;
 
     double* x;
     double* y;
@@ -58,6 +62,10 @@ class simulate_n_particles{
     double* vx;
     double* vy;
     double* vz;
+
+    // linked list
+    int* head;
+    int* linked_list;
 
     vector<int> saved_particles;
     string folder_name;
@@ -72,13 +80,16 @@ class simulate_n_particles{
       delete[] vx;
       delete[] vy;
       delete[] vz;
+
+      delete[] head;
+      delete[] linked_list;
     }
 
-    simulate_n_particles(int N): N(N), t_max(10*sphere_radius/(initial_speed_u)){
+    simulate_n_particles(int N): N(N), t_max(10*sphere_radius/(initial_speed_u)), Lcell(15000*radius_he), x_a(-5.0*sphere_radius),
+    x_b(-1.0*sphere_radius), y_a(-2.0*sphere_radius), y_b(2.0*sphere_radius), z_a(-2.0*sphere_radius),
+    z_b(2.0*sphere_radius), Cx(-2*x_a / Lcell), Cy((y_b - y_a) / Lcell), Cz((z_b - z_a) / Lcell),
+    N_cells_total(Cx*Cy*Cz){
       //constructor
-      x_a = -5.0*sphere_radius, x_b = -1.0*sphere_radius;
-      y_a = -2.0*sphere_radius, y_b = 2.0*sphere_radius;
-      z_a = -2.0*sphere_radius, z_b = 2.0*sphere_radius;
 
       saved_particles = generate_random_particle_ids(N);
 
@@ -97,6 +108,9 @@ class simulate_n_particles{
       vx = new double[N];
       vy = new double[N];
       vz = new double[N];
+
+      head = new int[N_cells_total];
+      linked_list = new int[N];
 
       cout << "N = "<< N << "\n";
     };
@@ -121,18 +135,121 @@ class simulate_n_particles{
       file_name << folder_name << "/step_" << t/dt;
       ofstream step_file(file_name.str(), std::ios::app);
 
-      for(int idx_particle = 0; idx_particle < N; idx_particle += 1){
-        if(find(saved_particles.begin(), saved_particles.end(), idx_particle) != saved_particles.end()){ //particle is one of the random chosen to be saved
-          step_file << idx_particle << ", " << x[idx_particle] << ", " << y[idx_particle] << ", " << z[idx_particle] << "\n";
-        }
+      for(int idx_particle : saved_particles){ // save selected particles
+        step_file << idx_particle << ", " << x[idx_particle] << ", " << y[idx_particle] << ", " << z[idx_particle] << "\n";
       }
       step_file.close();
     }
 
-    void manage_collisions(int idx_p1){
+    int idx_cell_grid(int i, int j, int k){
+      return Cz*(Cy*i + j) + k;
+    }
+
+    void reset_particle_cells(){
+      int idx_cell;
+
+      for(idx_cell = 0; idx_cell < N_cells_total; idx_cell += 1){
+        head[idx_cell] = -1;
+      }
+    }
+
+    void particle_collisions_linked_list(){
       double x1, y1, z1, x2, y2, z2;
       double vx1, vy1, vz1, vx2, vy2, vz2;
       double alpha, beta, d, intersection, nx, ny, nz;
+      int idx_p1, idx_p2;
+      int cx,cy,cz,c;
+      int ccx,ccy,ccz;
+      int cxviz,cyviz,czviz,cviz;
+      int qual[3];
+
+      reset_particle_cells();
+
+      for(int i = 0; i < N; i += 1){
+        qual[0] = (x[i] - x_a)/Lcell;
+        qual[1] = (y[i] - y_a)/Lcell;
+        qual[2] = (z[i] - z_a)/Lcell;
+        if((qual[0] < 0) || (qual[0] > Cx) || (qual[1] < 0) || (qual[1] > Cy) || (qual[2] < 0) || (qual[2] > Cz))
+          continue;
+
+        c = idx_cell_grid(qual[0], qual[1], qual[2]);
+
+        linked_list[i] = head[c];
+        //a última será a head / inicial
+        head[c] = i;
+      }
+
+      for(cx = 1; cx < Cx - 1; cx += 1)
+      for(cy = 1; cy < Cy - 1; cy += 1)
+      for(cz = 1; cz < Cz - 1; cz += 1){
+        c = idx_cell_grid(cx, cy, cz);
+
+        for(ccx = - 1; ccx <= 1; ccx += 1)
+        for(ccy = - 1; ccy <= 1; ccy += 1)
+        for(ccz = - 1; ccz <= 1; ccz += 1){
+          cxviz = cx + ccx;
+          cyviz = cy + ccy;
+          czviz = cz + ccz;
+
+          cviz = idx_cell_grid(cxviz, cyviz, czviz);
+
+          idx_p1 = head[c];
+
+          while(idx_p1 >= 0){
+            x1 = x[idx_p1], y1 = y[idx_p1], z1 = z[idx_p1];
+            vx1 = vx[idx_p1], vy1 = vy[idx_p1], vz1 = vz[idx_p1];
+
+            idx_p2 = head[cviz];
+
+            while(idx_p2 >= 0){
+
+              if(idx_p1 != idx_p2){
+                x2 = x[idx_p2], y2 = y[idx_p2], z2 = z[idx_p2];
+
+                d = sqrt(pow(x2 - x1, 2) + pow(y2 - y1, 2) + pow(z2 - z1, 2)); //distance between particles
+
+                if(d < 2*radius_he){
+                  nx = (x2 - x1)/d, ny = (y2 - y1)/d, nz = (z2 - z1)/d;
+
+                  intersection = 2*radius_he - d;
+
+                  // position correction before changing velocity
+                  x[idx_p1] = x1 - intersection/2*nx;
+                  y[idx_p1] = y1 - intersection/2*ny;
+                  z[idx_p1] = z1 - intersection/2*nz;
+
+                  x[idx_p2] = x2 + intersection/2*nx;
+                  y[idx_p2] = y2 + intersection/2*ny;
+                  z[idx_p2] = z2 + intersection/2*nz;
+
+                  // velocities update
+                  vx2 = vx[idx_p2], vy2 = vy[idx_p2], vz2 = vz[idx_p2];
+
+                  alpha = (vx2 - vx1)*nx + (vy2 - vy1)*ny + (vz2 - vz1)*nz; // factors come from vector projection
+                  beta = (vx1 - vx2)*nx + (vy1 - vy2)*ny + (vz1 - vz2)*nz;
+
+                  vx[idx_p1] = vx1 + nx*alpha;
+                  vy[idx_p1] = vy1 + ny*alpha;
+                  vz[idx_p1] = vz1 + nz*alpha;
+
+                  vx[idx_p2] = vx2 + nx*beta;
+                  vy[idx_p2] = vy2 + ny*beta;
+                  vz[idx_p2] = vz2 + nz*beta;
+                }
+              }
+
+              idx_p2 = linked_list[idx_p2];
+            }
+            idx_p1 = linked_list[idx_p1];
+          }
+        }
+      }
+    }
+
+    void sphere_and_wall_collisions(int idx_p1){
+      double x1, y1, z1;
+      double vx1, vy1, vz1;
+      double d, intersection, nx, ny, nz;
 
       x1 = x[idx_p1], y1 = y[idx_p1], z1 = z[idx_p1];
       vx1 = vx[idx_p1], vy1 = vy[idx_p1], vz1 = vz[idx_p1];
@@ -179,44 +296,6 @@ class simulate_n_particles{
         z[idx_p1] += (radius_he - d);
         vz[idx_p1] = - vz[idx_p1];
       }
-
-      // collisions between particles
-      for(int idx_p2 = 0; idx_p2 < N; idx_p2 += 1){
-        if(idx_p1 != idx_p2){
-          x2 = x[idx_p2], y2 = y[idx_p2], z2 = z[idx_p2];
-          d = sqrt(pow(x2 - x1, 2) + pow(y2 - y1, 2) + pow(z2 - z1, 2)); //distance between particles
-
-          if(d < 2*radius_he){
-            nx = (x2 - x1)/d, ny = (y2 - y1)/d, nz = (z2 - z1)/d;
-
-            intersection = 2*radius_he - d;
-
-            // position correction before changing velocity
-            x[idx_p1] = x1 - intersection/2*nx;
-            y[idx_p1] = y1 - intersection/2*ny;
-            z[idx_p1] = z1 - intersection/2*nz;
-
-            x[idx_p2] = x2 + intersection/2*nx;
-            y[idx_p2] = y2 + intersection/2*ny;
-            z[idx_p2] = z2 + intersection/2*nz;
-
-            // velocities update
-            vx2 = vx[idx_p2], vy2 = vy[idx_p2], vz2 = vz[idx_p2];
-
-            alpha = (vx2 - vx1)*nx + (vy2 - vy1)*ny + (vz2 - vz1)*nz; // factors come from vector projection
-            beta = (vx1 - vx2)*nx + (vy1 - vy2)*ny + (vz1 - vz2)*nz;
-
-            vx[idx_p1] = vx1 + nx*alpha;
-            vy[idx_p1] = vy1 + ny*alpha;
-            vz[idx_p1] = vz1 + nz*alpha;
-
-            vx[idx_p2] = vx2 + nx*beta;
-            vy[idx_p2] = vy2 + ny*beta;
-            vz[idx_p2] = vz2 + nz*beta;
-          }
-        }
-      }
-
     }
 
     void euler_update(int idx_particle){
@@ -224,39 +303,29 @@ class simulate_n_particles{
       y[idx_particle] += vy[idx_particle]*dt;
       z[idx_particle] += vz[idx_particle]*dt;
 
-      manage_collisions(idx_particle);
+      sphere_and_wall_collisions(idx_particle);
     }
 
     void update_and_save(double t){
       for(int idx_particle = 0; idx_particle < N; idx_particle += 1){
         euler_update(idx_particle);
       }
+      particle_collisions_linked_list();
       save_position_file(t);
-    }
-
-    array<double, 3> generate_random_pos(){
-      double temp_x, temp_y, temp_z;
-
-      static std::random_device rd; //numeros aleatorios de alta precisao
-      static std::mt19937 generator(rd());
-
-      uniform_real_distribution<double> x_distribution(x_a + radius_he, x_b - radius_he);
-      uniform_real_distribution<double> y_distribution(y_a + radius_he, y_b - radius_he);
-      uniform_real_distribution<double> z_distribution(z_a + radius_he, z_b - radius_he);
-
-      temp_x = x_distribution(generator);
-      temp_y = y_distribution(generator);
-      temp_z = z_distribution(generator);
-
-      return {temp_x, temp_y, temp_z};
     }
 
     void set_initial_conditions(){
       double temp_x, temp_y, temp_z;
       double x2, y2, z2;
 
+      uniform_real_distribution<double> x_distribution(x_a + radius_he, x_b - radius_he);
+      uniform_real_distribution<double> y_distribution(y_a + radius_he, y_b - radius_he);
+      uniform_real_distribution<double> z_distribution(z_a + radius_he, z_b - radius_he);
+
       double distance_to_existing_particle;
-      array<double, 3> temp_pos;
+
+      static std::random_device rd; //numeros aleatorios de alta precisao
+      static std::mt19937 generator(rd());
 
       bool pos_is_valid;
 
@@ -264,10 +333,9 @@ class simulate_n_particles{
 
         pos_is_valid = false;
         while(pos_is_valid == false){
-          temp_pos = generate_random_pos();
-          temp_x = temp_pos[0];
-          temp_y = temp_pos[1];
-          temp_z = temp_pos[2];
+          temp_x = x_distribution(generator);
+          temp_y = y_distribution(generator);
+          temp_z = z_distribution(generator);
 
           pos_is_valid = true;
 
@@ -305,7 +373,5 @@ class simulate_n_particles{
       }
 
       create_meta_file();
-//      todo: dividir espaco em caixas para otimizar deteccao de colisao;
-
     }
 };

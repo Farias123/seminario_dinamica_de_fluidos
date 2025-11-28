@@ -30,6 +30,7 @@ def data_N(N : int) -> dict:
 
     format_step_files = data_dict["format_step_files"]
 
+    print("Lendo arquivos")
     for n in range(n_steps):
         step_file_path = os.path.join(path_to_folder, f"step_{n}")
 
