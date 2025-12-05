@@ -296,6 +296,16 @@ class simulate_n_particles{
         z[idx_p1] += (radius_he - d);
         vz[idx_p1] = - vz[idx_p1];
       }
+
+      //check if it is out of the space
+      if((x[idx_p1] < x_a) || (x[idx_p1] > -x_a)){
+        assign_random_valid_position(idx_p1);
+
+        vx[idx_p1] = initial_speed_u;
+        vy[idx_p1] = 0.0;
+        vz[idx_p1] = 0.0;
+      }
+
     }
 
     void euler_update(int idx_particle){
@@ -314,7 +324,7 @@ class simulate_n_particles{
       save_position_file(t);
     }
 
-    void set_initial_conditions(){
+    void assign_random_valid_position(int idx_p1){
       double temp_x, temp_y, temp_z;
       double x2, y2, z2;
 
@@ -327,35 +337,37 @@ class simulate_n_particles{
       static std::random_device rd; //numeros aleatorios de alta precisao
       static std::mt19937 generator(rd());
 
-      bool pos_is_valid;
+      bool pos_is_valid = false;
 
-      for(int idx_p1 = 0; idx_p1 < N; idx_p1 += 1){
+      while(pos_is_valid == false){
+        temp_x = x_distribution(generator);
+        temp_y = y_distribution(generator);
+        temp_z = z_distribution(generator);
 
-        pos_is_valid = false;
-        while(pos_is_valid == false){
-          temp_x = x_distribution(generator);
-          temp_y = y_distribution(generator);
-          temp_z = z_distribution(generator);
+        pos_is_valid = true;
 
-          pos_is_valid = true;
+        for(int idx_p2 = 0; idx_p2 < idx_p1; idx_p2 += 1){
+          x2 = x[idx_p2], y2 = y[idx_p2], z2 = z[idx_p2];
 
-          for(int idx_p2 = 0; idx_p2 < idx_p1; idx_p2 += 1){
-            x2 = x[idx_p2], y2 = y[idx_p2], z2 = z[idx_p2];
+          distance_to_existing_particle = sqrt(pow(x2 - temp_x, 2) + pow(y2 - temp_y, 2) + pow(z2 - temp_z, 2));
 
-            distance_to_existing_particle = sqrt(pow(x2 - temp_x, 2) + pow(y2 - temp_y, 2) + pow(z2 - temp_z, 2));
-
-            if(distance_to_existing_particle < 2*radius_he){
-              pos_is_valid = false;
-              break;
-            }
-          }
-
-          if (pos_is_valid){
-            x[idx_p1] = temp_x;
-            y[idx_p1] = temp_y;
-            z[idx_p1] = temp_z;
+          if(distance_to_existing_particle < 2*radius_he){
+            pos_is_valid = false;
+            break;
           }
         }
+
+        if (pos_is_valid){
+          x[idx_p1] = temp_x;
+          y[idx_p1] = temp_y;
+          z[idx_p1] = temp_z;
+        }
+      }
+    }
+
+    void set_initial_conditions(){
+      for(int idx_p1 = 0; idx_p1 < N; idx_p1 += 1){
+        assign_random_valid_position(idx_p1);
 
         vx[idx_p1] = initial_speed_u;
         vy[idx_p1] = 0.0;
