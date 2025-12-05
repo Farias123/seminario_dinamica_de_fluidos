@@ -94,7 +94,7 @@ class simulate_n_particles{
     }
 
     simulate_n_particles(int N, bool save_positions): N(N), save_positions(save_positions),
-    t_max(100*sphere_radius/initial_speed_u), Lcell(15000*radius_he), x_a(0.0), x_b(4.0*sphere_radius), y_a(0.0),
+    t_max(10*sphere_radius/initial_speed_u), Lcell(15000*radius_he), x_a(0.0), x_b(4.0*sphere_radius), y_a(0.0),
     y_b(4.0*sphere_radius), z_a(0.0), z_b(4.0*sphere_radius), Cx(2*(x_sphere - x_a) / Lcell), Cy((y_b - y_a) / Lcell),
     Cz((z_b - z_a) / Lcell), N_cells_total(Cx*Cy*Cz){
       //constructor
