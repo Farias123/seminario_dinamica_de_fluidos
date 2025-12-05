@@ -31,15 +31,16 @@ const double density_he = 0.1785; //kg/m3
 vector<int> generate_random_particle_ids(int N_particles){
   srand(time(0));
   vector<int> selected_particles;
+  int n_particles_to_save = 1000;
 
-  if (N_particles <= 1000) {
+  if (N_particles <= n_particles_to_save) {
       for (int i = 0; i < N_particles; i += 1) {
           selected_particles.push_back(i);
       }
   } else {
       unordered_set<int> unique_particles;
 
-      while (unique_particles.size() < 1000) {
+      while (unique_particles.size() < n_particles_to_save) {
         int random_number = rand() % N_particles;
         unique_particles.insert(random_number);
       }
@@ -331,7 +332,7 @@ class simulate_n_particles{
 
     void save_number_of_sphere_collisions_to_file(double t){
       stringstream file_name;
-      file_name << folder_name << "/number_collisions_step";
+      file_name << folder_name << "/number_collisions_step.csv";
       ofstream sphere_collisions_file(file_name.str(), std::ios::app);
 
       sphere_collisions_file << t << ", " << number_of_collisions_step << "\n";
