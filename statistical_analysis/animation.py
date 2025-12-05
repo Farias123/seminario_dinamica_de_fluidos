@@ -19,7 +19,7 @@ def animate_N(data_dict: dict, particles_to_animate : list) -> None:
     position_i = initial_positions.loc[initial_positions["idx"] == i, ["x", "y", "z"]]
     x, y, z = position_i.values[0]
     vpython_bodies[i] = sphere(pos=vector(x, y, z), make_trail=True,
-                                 radius=data_dict['r'], retain=60, color=color.red)
+                                 radius=data_dict['r'], retain=30, color=color.red)
 
   def update_positions(step: int) -> None:
     positions = filtered_steps_data[filtered_steps_data["step"] == step]
@@ -37,7 +37,7 @@ def animate_N(data_dict: dict, particles_to_animate : list) -> None:
 
 
 if __name__ == '__main__':
-  N = 1000
+  N = 10000
 
   data_dict = data_N(N)
   particles = list(set(data_dict["steps_data"]["idx"]))

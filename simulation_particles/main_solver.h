@@ -53,7 +53,9 @@ vector<int> generate_random_particle_ids(int N_particles){
 class simulate_n_particles{
   public:
     int N;
+    bool save_positions;
     int number_of_collisions_step;
+
     const double x_a, x_b, y_a, y_b, z_a, z_b;
     const double t_max; //s
     const double Lcell;
@@ -74,6 +76,7 @@ class simulate_n_particles{
 
     vector<int> saved_particles;
     string folder_name;
+    string collisions_step_filename;
 
     high_resolution_clock::time_point simulation_start_time = high_resolution_clock::now();
 
@@ -90,10 +93,10 @@ class simulate_n_particles{
       delete[] linked_list;
     }
 
-    simulate_n_particles(int N): N(N), t_max(10*sphere_radius/initial_speed_u), Lcell(15000*radius_he), x_a(0.0),
-    x_b(4.0*sphere_radius), y_a(0.0), y_b(4.0*sphere_radius), z_a(0.0),
-    z_b(4.0*sphere_radius), Cx(2*(x_sphere - x_a) / Lcell), Cy((y_b - y_a) / Lcell), Cz((z_b - z_a) / Lcell),
-    N_cells_total(Cx*Cy*Cz){
+    simulate_n_particles(int N, bool save_positions): N(N), save_positions(save_positions),
+    t_max(100*sphere_radius/initial_speed_u), Lcell(15000*radius_he), x_a(0.0), x_b(4.0*sphere_radius), y_a(0.0),
+    y_b(4.0*sphere_radius), z_a(0.0), z_b(4.0*sphere_radius), Cx(2*(x_sphere - x_a) / Lcell), Cy((y_b - y_a) / Lcell),
+    Cz((z_b - z_a) / Lcell), N_cells_total(Cx*Cy*Cz){
       //constructor
 
       saved_particles = generate_random_particle_ids(N);
@@ -102,11 +105,17 @@ class simulate_n_particles{
       temp_name << "./data/N-" << N;
       folder_name = temp_name.str();
 
-      if (filesystem::exists(folder_name)) {
+      stringstream file_name;
+      file_name << folder_name << "/number_collisions_step.csv";
+      collisions_step_filename = file_name.str();
+
+      if (filesystem::exists(folder_name) && (save_positions == true)) {
           filesystem::remove_all(folder_name);
       }
 
       filesystem::create_directories(folder_name);
+      filesystem::remove(collisions_step_filename);
+
       x = new double[N];
       y = new double[N];
       z = new double[N];
@@ -307,10 +316,7 @@ class simulate_n_particles{
       //check if it is out of the space
       if((x[idx_p1] < x_a) || (x[idx_p1] > x_a + 2*(x_sphere - x_a))){
         assign_random_valid_position(idx_p1);
-
-        vx[idx_p1] = initial_speed_u;
-        vy[idx_p1] = 0.0;
-        vz[idx_p1] = 0.0;
+        assign_random_velocity(idx_p1);
       }
 
     }
@@ -381,17 +387,33 @@ class simulate_n_particles{
       }
     }
 
+    void assign_random_velocity(int idx_p1){
+      double theta, phi;
+
+      uniform_real_distribution<double> theta_distribution(- M_PI/4.0, M_PI/4.0);
+      uniform_real_distribution<double> phi_distribution(M_PI/4.0, 3.0*M_PI/4.0);
+
+      static std::random_device rd;
+      static std::mt19937 generator(rd());
+
+      theta = theta_distribution(generator);
+      phi = phi_distribution(generator);
+
+      vx[idx_p1] = initial_speed_u*cos(theta)*sin(phi);
+      vy[idx_p1] = initial_speed_u*sin(theta)*sin(phi);
+      vz[idx_p1] = initial_speed_u*cos(phi);
+    }
+
     void set_initial_conditions(){
       number_of_collisions_step = 0;
       for(int idx_p1 = 0; idx_p1 < N; idx_p1 += 1){
         assign_random_valid_position(idx_p1);
-
-        vx[idx_p1] = initial_speed_u;
-        vy[idx_p1] = 0.0;
-        vz[idx_p1] = 0.0;
+        assign_random_velocity(idx_p1);
       }
       save_number_of_sphere_collisions_to_file(0.0);
-//      save_position_file(0.0);
+
+      if(save_positions == true)
+        save_position_file(0.0);
     }
 
     void main(){
@@ -401,7 +423,9 @@ class simulate_n_particles{
         number_of_collisions_step = 0;
         update(t);
         save_number_of_sphere_collisions_to_file(t);
-//        save_position_file(t);
+
+        if(save_positions == true)
+          save_position_file(t);
       }
 
       create_meta_file();

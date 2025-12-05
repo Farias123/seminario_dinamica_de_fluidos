@@ -22,6 +22,9 @@ def data_N(N : int) -> dict:
     data_files = os.listdir(path_to_folder)
     data_files.remove("meta.txt")
 
+    if "number_collisions_step.csv" in data_files:
+        data_files.remove("number_collisions_step.csv")
+
     with open(os.path.join(path_to_folder, "meta.txt"), "r") as meta_data_file:
         meta_data_str = meta_data_file.read()
         data_dict = parse_meta(meta_data_str)
