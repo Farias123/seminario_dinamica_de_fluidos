@@ -18,6 +18,9 @@ const double initial_speed_u = 1304.69; // m/s (T = 273.15 K)
 
 const double dt = 1e-11; //s
 const double sphere_radius = 8.34816651e-7; //m
+const double x_sphere = 5.0*sphere_radius;
+const double y_sphere = 2.0*sphere_radius;
+const double z_sphere = 2.0*sphere_radius;
 
 //atom variables
 const double n_avogadro = 6.0221408e23;
@@ -85,9 +88,9 @@ class simulate_n_particles{
       delete[] linked_list;
     }
 
-    simulate_n_particles(int N): N(N), t_max(10*sphere_radius/(initial_speed_u)), Lcell(15000*radius_he), x_a(-5.0*sphere_radius),
-    x_b(-1.0*sphere_radius), y_a(-2.0*sphere_radius), y_b(2.0*sphere_radius), z_a(-2.0*sphere_radius),
-    z_b(2.0*sphere_radius), Cx(-2*x_a / Lcell), Cy((y_b - y_a) / Lcell), Cz((z_b - z_a) / Lcell),
+    simulate_n_particles(int N): N(N), t_max(10*sphere_radius/initial_speed_u), Lcell(15000*radius_he), x_a(0.0),
+    x_b(4.0*sphere_radius), y_a(0.0), y_b(4.0*sphere_radius), z_a(0.0),
+    z_b(4.0*sphere_radius), Cx(2*(x_sphere - x_a) / Lcell), Cy((y_b - y_a) / Lcell), Cz((z_b - z_a) / Lcell),
     N_cells_total(Cx*Cy*Cz){
       //constructor
 
@@ -254,11 +257,11 @@ class simulate_n_particles{
       x1 = x[idx_p1], y1 = y[idx_p1], z1 = z[idx_p1];
       vx1 = vx[idx_p1], vy1 = vy[idx_p1], vz1 = vz[idx_p1];
 
-      d = sqrt(pow(x1, 2) + pow(y1, 2) + pow(z1, 2)); //distance to origin (sphere with radius = R)
+      d = sqrt(pow(x1 - x_sphere, 2) + pow(y1 - y_sphere, 2) + pow(z1 - z_sphere, 2)); //distance to origin (sphere with radius = R)
 
       //collision with central sphere
       if(d < radius_he + sphere_radius){
-        nx = - x1/d, ny = -y1/d, nz = - z1/d;
+        nx = - (x1 - x_sphere)/d, ny = - (y1 - y_sphere)/d, nz = - (z1 - z_sphere)/d;
 
         intersection = radius_he + sphere_radius - d;
 
@@ -298,7 +301,7 @@ class simulate_n_particles{
       }
 
       //check if it is out of the space
-      if((x[idx_p1] < x_a) || (x[idx_p1] > -x_a)){
+      if((x[idx_p1] < x_a) || (x[idx_p1] > x_a + 2*(x_sphere - x_a))){
         assign_random_valid_position(idx_p1);
 
         vx[idx_p1] = initial_speed_u;

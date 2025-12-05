@@ -9,9 +9,9 @@ def animate_N(data_dict: dict, particles_to_animate : list) -> None:
 
   R = data_dict["R"]
   scene.background = color.white
-  central_sphere = sphere(pos=vector(0,0,0), radius=R, color=color.blue)
-  scene.camera.pos = vector(5*R, 5*R, 5*R)
-  scene.camera.axis = vector(-5*R, -5*R, -5*R)
+  central_sphere = sphere(pos=vector(5*R, 2*R, 2*R), radius=R, color=color.blue)
+  scene.camera.pos = vector(10*R, 7*R, 7*R)
+  scene.camera.axis = vector(-10*R, -7*R, -7*R)
 
   vpython_bodies = {}
   initial_positions = filtered_steps_data[filtered_steps_data["step"] == 0]
@@ -30,17 +30,17 @@ def animate_N(data_dict: dict, particles_to_animate : list) -> None:
       vpython_bodies[i].pos = vector(x, y, z)
 
   step_range = set(filtered_steps_data["step"])
-  step_range = [step for step in step_range if step%10 == 0]
+  step_range = [step for step in step_range if step%3 == 0]
   for step in step_range:
     rate(30)
     update_positions(step)
 
 
 if __name__ == '__main__':
-  N = 15000
+  N = 1000
 
   data_dict = data_N(N)
   particles = list(set(data_dict["steps_data"]["idx"]))
-  particles_to_animate = particles[30:70]
+  particles_to_animate = particles[0:50]
 
   animate_N(data_dict, particles_to_animate)
