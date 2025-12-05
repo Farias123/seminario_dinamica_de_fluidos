@@ -52,6 +52,7 @@ vector<int> generate_random_particle_ids(int N_particles){
 class simulate_n_particles{
   public:
     int N;
+    int number_of_collisions_step;
     const double x_a, x_b, y_a, y_b, z_a, z_b;
     const double t_max; //s
     const double Lcell;
@@ -273,6 +274,8 @@ class simulate_n_particles{
         vx[idx_p1] = vx1 - 2*nx*(vx1*nx + vy1*ny + vz1*nz);
         vy[idx_p1] = vy1 - 2*ny*(vx1*nx + vy1*ny + vz1*nz);
         vz[idx_p1] = vz1 - 2*nz*(vx1*nx + vy1*ny + vz1*nz);
+
+        number_of_collisions_step += 1;
       }
 
       //collision walls
@@ -311,20 +314,29 @@ class simulate_n_particles{
 
     }
 
-    void euler_update(int idx_particle){
-      x[idx_particle] += vx[idx_particle]*dt;
-      y[idx_particle] += vy[idx_particle]*dt;
-      z[idx_particle] += vz[idx_particle]*dt;
+    void euler_update(){
+      for(int idx_particle = 0; idx_particle < N; idx_particle += 1){
+        x[idx_particle] += vx[idx_particle]*dt;
+        y[idx_particle] += vy[idx_particle]*dt;
+        z[idx_particle] += vz[idx_particle]*dt;
 
-      sphere_and_wall_collisions(idx_particle);
+        sphere_and_wall_collisions(idx_particle);
+      }
     }
 
-    void update_and_save(double t){
-      for(int idx_particle = 0; idx_particle < N; idx_particle += 1){
-        euler_update(idx_particle);
-      }
+    void update(double t){
+      euler_update();
       particle_collisions_linked_list();
-      save_position_file(t);
+    }
+
+    void save_number_of_sphere_collisions_to_file(double t){
+      stringstream file_name;
+      file_name << folder_name << "/number_collisions_step";
+      ofstream sphere_collisions_file(file_name.str(), std::ios::app);
+
+      sphere_collisions_file << t << ", " << number_of_collisions_step << "\n";
+
+      sphere_collisions_file.close();
     }
 
     void assign_random_valid_position(int idx_p1){
@@ -369,6 +381,7 @@ class simulate_n_particles{
     }
 
     void set_initial_conditions(){
+      number_of_collisions_step = 0;
       for(int idx_p1 = 0; idx_p1 < N; idx_p1 += 1){
         assign_random_valid_position(idx_p1);
 
@@ -376,15 +389,18 @@ class simulate_n_particles{
         vy[idx_p1] = 0.0;
         vz[idx_p1] = 0.0;
       }
-
-      save_position_file(0.0);
+      save_number_of_sphere_collisions_to_file(0.0);
+//      save_position_file(0.0);
     }
 
     void main(){
       set_initial_conditions();
 
       for(double t = dt; t < t_max; t += dt){
-        update_and_save(t);
+        number_of_collisions_step = 0;
+        update(t);
+        save_number_of_sphere_collisions_to_file(t);
+//        save_position_file(t);
       }
 
       create_meta_file();
