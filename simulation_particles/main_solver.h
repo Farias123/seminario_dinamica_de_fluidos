@@ -27,7 +27,7 @@ const double initial_speed_u = sqrt(3*boltzmann_constant*temperature / mass_atom
 const double asymptotic_U = 8.35e-7; //m/s
 
 const double dt = 1e-11; //s
-const double time_to_equilibrium = 0; //5000.0*dt; //s
+const double time_to_equilibrium = 5000.0*dt; //s
 const double sphere_radius = 8.35e-7; //m
 const double x_sphere = 5.0*sphere_radius;
 const double y_sphere = 2.0*sphere_radius;
@@ -38,7 +38,7 @@ const double sigma_v = sqrt(boltzmann_constant*temperature / mass_atom); //sqrt(
 vector<int> generate_random_particle_ids(int N_particles){
   srand(time(0));
   vector<int> selected_particles;
-  int n_particles_to_save = 1000;
+  int n_particles_to_save = 10000;
 
   if (N_particles <= n_particles_to_save) {
       for (int i = 0; i < N_particles; i += 1) {
@@ -101,7 +101,7 @@ class simulate_n_particles{
     }
 
     simulate_n_particles(int N, bool save_positions): N(N), save_positions(save_positions),
-    t_max(10000*dt), Lcell(15000*radius_atom), x_a(0.0), x_b(4.0*sphere_radius), y_a(0.0),
+    t_max(100*dt), Lcell(15000*radius_atom), x_a(0.0), x_b(4.0*sphere_radius), y_a(0.0),
     y_b(4.0*sphere_radius), z_a(0.0), z_b(4.0*sphere_radius), Cx(2*(x_sphere - x_a) / Lcell), Cy((y_b - y_a) / Lcell),
     Cz((z_b - z_a) / Lcell), N_cells_total(Cx*Cy*Cz){
       //constructor
@@ -114,7 +114,7 @@ class simulate_n_particles{
 
       temp_name.str("");
       temp_name.clear();
-      temp_name << folder_name << "/number_collisions_step.csv";
+      temp_name << folder_name << "./data/" << N << "_number_collisions_step.csv";
       collisions_step_filename = temp_name.str();
 
       if (filesystem::exists(folder_name) && (save_positions == true)) {
@@ -148,7 +148,7 @@ class simulate_n_particles{
       auto simulation_duration = duration_cast<milliseconds>(simulation_end_time - simulation_start_time);
 
       meta_file << "r = " << radius_atom << "; R = " << sphere_radius << "; dt = " << dt
-      << "; U = "<< asymptotic_U <<"; simulation_time(ms) = "<< to_string(simulation_duration.count()) << "; format_step_files = idx, x, y, z";
+      << "; U = "<< asymptotic_U <<"; simulation_time(ms) = "<< to_string(simulation_duration.count()) << "; format_step_files = idx, x, y, z, vx, vy, vz";
       meta_file.close();
     }
 
@@ -158,7 +158,8 @@ class simulate_n_particles{
       ofstream step_file(file_name.str(), std::ios::app);
 
       for(int idx_particle : saved_particles){ // save selected particles
-        step_file << idx_particle << ", " << x[idx_particle] << ", " << y[idx_particle] << ", " << z[idx_particle] << "\n";
+        step_file << idx_particle << ", " << x[idx_particle] << ", " << y[idx_particle] << ", " << z[idx_particle] <<
+        ", " << vx[idx_particle] << ", " << vy[idx_particle] << ", " << vz[idx_particle] << "\n";
       }
       step_file.close();
     }
@@ -320,12 +321,6 @@ class simulate_n_particles{
         vz[idx_p1] = - vz[idx_p1];
       }
 
-//      if(x[idx_p1] < x_a){ // possibilidade
-//        x[idx_p1] += 10*sphere_radius;
-//      }
-//      if(x[idx_p1] > x_a + 2*(x_sphere - x_a)){
-//        x[idx_p1] -= 10*sphere_radius;
-//      }
       //check if it is out of the space
       if((x[idx_p1] < x_a) || (x[idx_p1] > x_a + 2*(x_sphere - x_a))){
         assign_random_valid_position(idx_p1, false);
@@ -439,8 +434,6 @@ class simulate_n_particles{
       x[idx_p1] = temp_x;
       y[idx_p1] = temp_y;
       z[idx_p1] = temp_z;
-
-      cout << idx_p1 << "\n";
     }
 
     void assign_random_velocity(int idx_p1){

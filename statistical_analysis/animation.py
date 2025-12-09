@@ -1,6 +1,7 @@
 from vpython import *
 
 from file_reading import data_N
+import os
 
 def animate_N(data_dict: dict, particles_to_animate : list) -> None:
   print("Iniciando animação")
@@ -38,8 +39,9 @@ def animate_N(data_dict: dict, particles_to_animate : list) -> None:
 
 if __name__ == '__main__':
   N = 10000
+  path_to_folder = os.path.join("..", "simulation_particles", "data", f"N-{N}")
 
-  data_dict = data_N(N)
+  data_dict = data_N(path_to_folder)
   particles = list(set(data_dict["steps_data"]["idx"]))
   particles_to_animate = particles[0:50]
 

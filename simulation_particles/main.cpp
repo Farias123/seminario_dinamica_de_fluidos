@@ -1,13 +1,11 @@
 #include "main_solver.h"
 
-int main(){
-  int max_N = 10000;
-  bool save_positions = false;
+int main(int argc, char *argv[]){
+  int N = stoi(argv[1]);
+  bool save_positions = true;
 
-  for(int n = 10000; n <= max_N; n += 1){
-    simulate_n_particles simulator(n, save_positions);
-    simulator.main();
-  }
+  simulate_n_particles simulator(N, save_positions);
+  simulator.main();
 
   return 0;
 }

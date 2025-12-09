@@ -17,8 +17,7 @@ def parse_meta(meta_str: str) -> dict:
     return data_dict
 
 
-def data_N(N : int) -> dict:
-    path_to_folder = os.path.join("..", "simulation_particles", "data", f"N-{N}")
+def data_N(path_to_folder: str) -> dict:
     data_files = os.listdir(path_to_folder)
     data_files.remove("meta.txt")
 
@@ -53,6 +52,3 @@ def data_N(N : int) -> dict:
 
     return data_dict
 
-
-if __name__ == "__main__":
-    data_N(1)
