@@ -260,7 +260,7 @@ def generate_streamlines_data(velocity_archive, x_coord, y_coord, z_coord, spher
     vector_name = "f_38"
 
     # Criar sementes (exemplo: esfera de sementes)
-    seeds = pv.Sphere(radius=sphere_radius, center=(5 * sphere_radius, 2 * sphere_radius, 2 * sphere_radius))
+    seeds = pv.Sphere(radius= 4*sphere_radius, center =(5*sphere_radius, 2*sphere_radius, 2*sphere_radius), theta_resolution= 100, phi_resolution=100)
 
     # Gerar streamlines
     streamlines = mesh.streamlines_from_source(
@@ -307,7 +307,7 @@ def create_streamline_graph(velocity_archive, sphere_radius):
     vector_name = "f_38"
 
     # Criar sementes (exemplo: esfera de sementes)
-    seeds = pv.Sphere(radius=4 * sphere_radius, center=(5 * sphere_radius, 2 * sphere_radius, 2 * sphere_radius))
+    seeds = pv.Sphere(radius= 4*sphere_radius, center =(5*sphere_radius, 2*sphere_radius, 2*sphere_radius), theta_resolution= 50, phi_resolution=50)
 
     # Gerar streamlines
     streamlines = mesh.streamlines_from_source(
