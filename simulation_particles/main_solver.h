@@ -14,19 +14,26 @@
 using namespace std;
 using namespace std::chrono;
 
-const double initial_speed_u = 1304.69; // m/s (T = 273.15 K)
+const double n_avogadro = 6.0221408e23;
+const double boltzmann_constant = 1.380649e-23; //m2* kg/(K * s2)
+
+//atom variables
+const double mass_he = 0.004002602/n_avogadro; //kg
+const double radius_he = 1.4e-10; //m
+const double density_he = 0.1785; //kg/m3
+
+//boundary conditions
+const double temperature = 273.15; //K
+const double initial_speed_u = sqrt(3*boltzmann_constant*temperature / mass_he); //m/s (T = 273.15 K)
+const double asymptotic_U = 8.35e-7; //m/s
 
 const double dt = 1e-11; //s
-const double sphere_radius = 8.34816651e-7; //m
+const double sphere_radius = 8.35e-7; //m
 const double x_sphere = 5.0*sphere_radius;
 const double y_sphere = 2.0*sphere_radius;
 const double z_sphere = 2.0*sphere_radius;
 
-//atom variables
-const double n_avogadro = 6.0221408e23;
-const double mass_he = 0.004002602/n_avogadro; //kg
-const double radius_he = 1.4e-10; //m
-const double density_he = 0.1785; //kg/m3
+const double sigma_v = sqrt(boltzmann_constant*temperature / mass_he); //sqrt(kb*T/m)
 
 vector<int> generate_random_particle_ids(int N_particles){
   srand(time(0));
@@ -105,9 +112,10 @@ class simulate_n_particles{
       temp_name << "./data/N-" << N;
       folder_name = temp_name.str();
 
-      stringstream file_name;
-      file_name << folder_name << "/number_collisions_step.csv";
-      collisions_step_filename = file_name.str();
+      temp_name.str("");
+      temp_name.clear();
+      temp_name << folder_name << "/number_collisions_step.csv";
+      collisions_step_filename = temp_name.str();
 
       if (filesystem::exists(folder_name) && (save_positions == true)) {
           filesystem::remove_all(folder_name);
@@ -140,7 +148,7 @@ class simulate_n_particles{
       auto simulation_duration = duration_cast<milliseconds>(simulation_end_time - simulation_start_time);
 
       meta_file << "r = " << radius_he << "; R = " << sphere_radius << "; dt = " << dt
-      << "; U = "<< initial_speed_u <<"; simulation_time(ms) = "<< to_string(simulation_duration.count()) << "; format_step_files = idx, x, y, z";
+      << "; U = "<< asymptotic_U <<"; simulation_time(ms) = "<< to_string(simulation_duration.count()) << "; format_step_files = idx, x, y, z";
       meta_file.close();
     }
 
@@ -337,10 +345,7 @@ class simulate_n_particles{
     }
 
     void save_number_of_sphere_collisions_to_file(double t){
-      stringstream file_name;
-      file_name << folder_name << "/number_collisions_step.csv";
-      ofstream sphere_collisions_file(file_name.str(), std::ios::app);
-
+      ofstream sphere_collisions_file(collisions_step_filename, std::ios::app);
       sphere_collisions_file << t << ", " << number_of_collisions_step << "\n";
 
       sphere_collisions_file.close();
@@ -388,20 +393,19 @@ class simulate_n_particles{
     }
 
     void assign_random_velocity(int idx_p1){
-      double theta, phi;
-
-      uniform_real_distribution<double> theta_distribution(- M_PI/4.0, M_PI/4.0);
-      uniform_real_distribution<double> phi_distribution(M_PI/4.0, 3.0*M_PI/4.0);
-
       static std::random_device rd;
       static std::mt19937 generator(rd());
+      double temp_vx = -1;
 
-      theta = theta_distribution(generator);
-      phi = phi_distribution(generator);
+      normal_distribution maxwell_boltzmann_dist{0.0, sigma_v};
 
-      vx[idx_p1] = initial_speed_u*cos(theta)*sin(phi);
-      vy[idx_p1] = initial_speed_u*sin(theta)*sin(phi);
-      vz[idx_p1] = initial_speed_u*cos(phi);
+      //dist normal (vx soma U)
+      while(temp_vx < 0){
+        temp_vx = maxwell_boltzmann_dist(generator);
+      }
+      vx[idx_p1] = temp_vx + asymptotic_U;
+      vy[idx_p1] = maxwell_boltzmann_dist(generator);
+      vz[idx_p1] = maxwell_boltzmann_dist(generator);
     }
 
     void set_initial_conditions(){
