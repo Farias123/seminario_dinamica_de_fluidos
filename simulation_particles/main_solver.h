@@ -331,7 +331,7 @@ class simulate_n_particles{
 //      }
       //check if it is out of the space
       if((x[idx_p1] < x_a) || (x[idx_p1] > x_a + 2*(x_sphere - x_a))){
-        assign_random_valid_position(idx_p1);
+        assign_random_valid_position(idx_p1, false);
         assign_random_velocity(idx_p1);
       }
 
@@ -359,9 +359,15 @@ class simulate_n_particles{
       sphere_collisions_file.close();
     }
 
-    void assign_random_valid_position(int idx_p1){
+    void assign_random_valid_position(int idx_p1, bool is_first_generation){
       double temp_x, temp_y, temp_z;
       double x2, y2, z2;
+
+      int idx_p2;
+      int cx,cy,cz, c;
+      int ccx,ccy,ccz;
+      int cxviz,cyviz,czviz,cviz;
+      int qual[3];
 
       uniform_real_distribution<double> x_distribution(x_a + radius_he, x_b - radius_he);
       uniform_real_distribution<double> y_distribution(y_a + radius_he, y_b - radius_he);
@@ -374,30 +380,69 @@ class simulate_n_particles{
 
       bool pos_is_valid = false;
 
+      reset_particle_cells();
+
+      int particles_already_created = N;
+      if(is_first_generation){
+        particles_already_created = idx_p1;
+      }
+
+      for(int i = 0; i < particles_already_created; i += 1){
+        qual[0] = (x[i] - x_a)/Lcell;
+        qual[1] = (y[i] - y_a)/Lcell;
+        qual[2] = (z[i] - z_a)/Lcell;
+        if((qual[0] < 0) || (qual[0] >= Cx) || (qual[1] < 0) || (qual[1] >= Cy) || (qual[2] < 0) || (qual[2] >= Cz))
+          continue;
+
+        c = idx_cell_grid(qual[0], qual[1], qual[2]);
+
+        linked_list[i] = head[c];
+        //a última será a head / inicial
+        head[c] = i;
+      }
+
       while(pos_is_valid == false){
         temp_x = x_distribution(generator);
         temp_y = y_distribution(generator);
         temp_z = z_distribution(generator);
 
+        cx = (temp_x - x_a)/Lcell;
+        cy = (temp_y - y_a)/Lcell;
+        cz = (temp_z - z_a)/Lcell;
+
         pos_is_valid = true;
 
-        for(int idx_p2 = 0; idx_p2 < idx_p1; idx_p2 += 1){
-          x2 = x[idx_p2], y2 = y[idx_p2], z2 = z[idx_p2];
+        for(ccx = - 1; ccx <= 1 && pos_is_valid; ccx += 1)
+        for(ccy = - 1; ccy <= 1 && pos_is_valid; ccy += 1)
+        for(ccz = - 1; ccz <= 1 && pos_is_valid; ccz += 1){
+          cxviz = cx + ccx;
+          cyviz = cy + ccy;
+          czviz = cz + ccz;
 
-          distance_to_existing_particle = sqrt(pow(x2 - temp_x, 2) + pow(y2 - temp_y, 2) + pow(z2 - temp_z, 2));
+          if((cxviz < 0) || (cxviz >= Cx) || (cyviz < 0) || (cyviz >= Cy) || (czviz < 0) || (czviz >= Cz))
+            continue;
 
-          if(distance_to_existing_particle < 2*radius_he){
-            pos_is_valid = false;
-            break;
+          cviz = idx_cell_grid(cxviz, cyviz, czviz);
+
+          idx_p2 = head[cviz];
+
+          while(idx_p2 >= 0){
+            x2 = x[idx_p2], y2 = y[idx_p2], z2 = z[idx_p2];
+
+            distance_to_existing_particle = sqrt(pow(x2 - temp_x, 2) + pow(y2 - temp_y, 2) + pow(z2 - temp_z, 2));
+            if(distance_to_existing_particle < 2*radius_he){
+              pos_is_valid = false;
+              break;
+            }
+
+            idx_p2 = linked_list[idx_p2];
           }
         }
-
-        if (pos_is_valid){
-          x[idx_p1] = temp_x;
-          y[idx_p1] = temp_y;
-          z[idx_p1] = temp_z;
-        }
       }
+      x[idx_p1] = temp_x;
+      y[idx_p1] = temp_y;
+      z[idx_p1] = temp_z;
+      cout << idx_p1 << "\n";
     }
 
     void assign_random_velocity(int idx_p1){
@@ -417,8 +462,10 @@ class simulate_n_particles{
     }
 
     void set_initial_conditions(){
+      bool is_first_generation = true;
+
       for(int idx_p1 = 0; idx_p1 < N; idx_p1 += 1){
-        assign_random_valid_position(idx_p1);
+        assign_random_valid_position(idx_p1, is_first_generation);
         assign_random_velocity(idx_p1);
       }
     }
