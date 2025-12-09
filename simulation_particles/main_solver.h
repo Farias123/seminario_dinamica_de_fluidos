@@ -14,28 +14,26 @@
 using namespace std;
 using namespace std::chrono;
 
-const double time_to_equilibrium = 0.0; //s
-
 const double n_avogadro = 6.0221408e23;
 const double boltzmann_constant = 1.380649e-23; //m2* kg/(K * s2)
 
-//atom variables
-const double mass_he = 0.004002602/n_avogadro; //kg
-const double radius_he = 1.4e-10; //m
-const double density_he = 0.1785; //kg/m3
+//atom variables - water molecule
+const double mass_atom = 0.0180153/n_avogadro; //kg
+const double radius_atom = 2.8e-10; //m source: https://bionumbers.hms.harvard.edu/bionumber.aspx?s=n&v=6&id=103723
 
 //boundary conditions
 const double temperature = 273.15; //K
-const double initial_speed_u = sqrt(3*boltzmann_constant*temperature / mass_he); //m/s (T = 273.15 K)
+const double initial_speed_u = sqrt(3*boltzmann_constant*temperature / mass_atom); //m/s (T = 273.15 K)
 const double asymptotic_U = 8.35e-7; //m/s
 
 const double dt = 1e-11; //s
+const double time_to_equilibrium = 0; //5000.0*dt; //s
 const double sphere_radius = 8.35e-7; //m
 const double x_sphere = 5.0*sphere_radius;
 const double y_sphere = 2.0*sphere_radius;
 const double z_sphere = 2.0*sphere_radius;
 
-const double sigma_v = sqrt(boltzmann_constant*temperature / mass_he); //sqrt(kb*T/m)
+const double sigma_v = sqrt(boltzmann_constant*temperature / mass_atom); //sqrt(kb*T/m)
 
 vector<int> generate_random_particle_ids(int N_particles){
   srand(time(0));
@@ -103,7 +101,7 @@ class simulate_n_particles{
     }
 
     simulate_n_particles(int N, bool save_positions): N(N), save_positions(save_positions),
-    t_max(10*sphere_radius/initial_speed_u), Lcell(15000*radius_he), x_a(0.0), x_b(4.0*sphere_radius), y_a(0.0),
+    t_max(10000*dt), Lcell(15000*radius_atom), x_a(0.0), x_b(4.0*sphere_radius), y_a(0.0),
     y_b(4.0*sphere_radius), z_a(0.0), z_b(4.0*sphere_radius), Cx(2*(x_sphere - x_a) / Lcell), Cy((y_b - y_a) / Lcell),
     Cz((z_b - z_a) / Lcell), N_cells_total(Cx*Cy*Cz){
       //constructor
@@ -149,7 +147,7 @@ class simulate_n_particles{
       auto simulation_end_time = high_resolution_clock::now();
       auto simulation_duration = duration_cast<milliseconds>(simulation_end_time - simulation_start_time);
 
-      meta_file << "r = " << radius_he << "; R = " << sphere_radius << "; dt = " << dt
+      meta_file << "r = " << radius_atom << "; R = " << sphere_radius << "; dt = " << dt
       << "; U = "<< asymptotic_U <<"; simulation_time(ms) = "<< to_string(simulation_duration.count()) << "; format_step_files = idx, x, y, z";
       meta_file.close();
     }
@@ -232,10 +230,9 @@ class simulate_n_particles{
 
                 d = sqrt(pow(x2 - x1, 2) + pow(y2 - y1, 2) + pow(z2 - z1, 2)); //distance between particles
 
-                if(d < 2*radius_he){
+                if(d < 2*radius_atom){
                   nx = (x2 - x1)/d, ny = (y2 - y1)/d, nz = (z2 - z1)/d;
-
-                  intersection = 2*radius_he - d;
+                  intersection = 2*radius_atom - d;
 
                   // position correction before changing velocity
                   x[idx_p1] = x1 - intersection/2*nx;
@@ -281,10 +278,10 @@ class simulate_n_particles{
       d = sqrt(pow(x1 - x_sphere, 2) + pow(y1 - y_sphere, 2) + pow(z1 - z_sphere, 2)); //distance to origin (sphere with radius = R)
 
       //collision with central sphere
-      if(d < radius_he + sphere_radius){
+      if(d < radius_atom + sphere_radius){
         nx = - (x1 - x_sphere)/d, ny = - (y1 - y_sphere)/d, nz = - (z1 - z_sphere)/d;
 
-        intersection = radius_he + sphere_radius - d;
+        intersection = radius_atom + sphere_radius - d;
 
         // position correction before changing velocity
         x[idx_p1] = x1 - intersection*nx;
@@ -300,26 +297,26 @@ class simulate_n_particles{
 
       //collision walls
       d = y_b - y[idx_p1]; //right
-      if(d < radius_he){
-        y[idx_p1] -= (radius_he - d);
+      if(d < radius_atom){
+        y[idx_p1] -= (radius_atom - d);
         vy[idx_p1] = - vy[idx_p1];
       }
 
       d = - (y_a - y[idx_p1]); //left
-      if(d < radius_he){
-        y[idx_p1] += (radius_he - d);
+      if(d < radius_atom){
+        y[idx_p1] += (radius_atom - d);
         vy[idx_p1] = - vy[idx_p1];
       }
 
       d = z_b - z[idx_p1]; //up
-      if(d < radius_he){
-        z[idx_p1] -= (radius_he - d);
+      if(d < radius_atom){
+        z[idx_p1] -= (radius_atom - d);
         vz[idx_p1] = - vz[idx_p1];
       }
 
       d = - (z_a - z[idx_p1]); //down
-      if(d < radius_he){
-        z[idx_p1] += (radius_he - d);
+      if(d < radius_atom){
+        z[idx_p1] += (radius_atom - d);
         vz[idx_p1] = - vz[idx_p1];
       }
 
@@ -369,9 +366,9 @@ class simulate_n_particles{
       int cxviz,cyviz,czviz,cviz;
       int qual[3];
 
-      uniform_real_distribution<double> x_distribution(x_a + radius_he, x_b - radius_he);
-      uniform_real_distribution<double> y_distribution(y_a + radius_he, y_b - radius_he);
-      uniform_real_distribution<double> z_distribution(z_a + radius_he, z_b - radius_he);
+      uniform_real_distribution<double> x_distribution(x_a + radius_atom, x_b - radius_atom);
+      uniform_real_distribution<double> y_distribution(y_a + radius_atom, y_b - radius_atom);
+      uniform_real_distribution<double> z_distribution(z_a + radius_atom, z_b - radius_atom);
 
       double distance_to_existing_particle;
 
@@ -430,7 +427,7 @@ class simulate_n_particles{
             x2 = x[idx_p2], y2 = y[idx_p2], z2 = z[idx_p2];
 
             distance_to_existing_particle = sqrt(pow(x2 - temp_x, 2) + pow(y2 - temp_y, 2) + pow(z2 - temp_z, 2));
-            if(distance_to_existing_particle < 2*radius_he){
+            if(distance_to_existing_particle < 2*radius_atom){
               pos_is_valid = false;
               break;
             }
@@ -442,6 +439,7 @@ class simulate_n_particles{
       x[idx_p1] = temp_x;
       y[idx_p1] = temp_y;
       z[idx_p1] = temp_z;
+
       cout << idx_p1 << "\n";
     }
 
@@ -468,6 +466,9 @@ class simulate_n_particles{
         assign_random_valid_position(idx_p1, is_first_generation);
         assign_random_velocity(idx_p1);
       }
+
+      if(save_positions == true)
+        save_position_file(0.0);
     }
 
     void main(){
@@ -475,7 +476,7 @@ class simulate_n_particles{
       for(double t = 0.0; t < time_to_equilibrium; t += dt)
         update();
 
-      save_position_file(0.0);
+      number_of_collisions_step = 0;
       save_number_of_sphere_collisions_to_file(0.0);
 
       for(double t = dt; t < t_max; t += dt){
