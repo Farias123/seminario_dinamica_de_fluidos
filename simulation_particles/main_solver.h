@@ -14,6 +14,8 @@
 using namespace std;
 using namespace std::chrono;
 
+const double time_to_equilibrium = 0.0; //s
+
 const double n_avogadro = 6.0221408e23;
 const double boltzmann_constant = 1.380649e-23; //m2* kg/(K * s2)
 
@@ -321,6 +323,12 @@ class simulate_n_particles{
         vz[idx_p1] = - vz[idx_p1];
       }
 
+//      if(x[idx_p1] < x_a){ // possibilidade
+//        x[idx_p1] += 10*sphere_radius;
+//      }
+//      if(x[idx_p1] > x_a + 2*(x_sphere - x_a)){
+//        x[idx_p1] -= 10*sphere_radius;
+//      }
       //check if it is out of the space
       if((x[idx_p1] < x_a) || (x[idx_p1] > x_a + 2*(x_sphere - x_a))){
         assign_random_valid_position(idx_p1);
@@ -339,7 +347,7 @@ class simulate_n_particles{
       }
     }
 
-    void update(double t){
+    void update(){
       euler_update();
       particle_collisions_linked_list();
     }
@@ -409,23 +417,23 @@ class simulate_n_particles{
     }
 
     void set_initial_conditions(){
-      number_of_collisions_step = 0;
       for(int idx_p1 = 0; idx_p1 < N; idx_p1 += 1){
         assign_random_valid_position(idx_p1);
         assign_random_velocity(idx_p1);
       }
-      save_number_of_sphere_collisions_to_file(0.0);
-
-      if(save_positions == true)
-        save_position_file(0.0);
     }
 
     void main(){
       set_initial_conditions();
+      for(double t = 0.0; t < time_to_equilibrium; t += dt)
+        update();
+
+      save_position_file(0.0);
+      save_number_of_sphere_collisions_to_file(0.0);
 
       for(double t = dt; t < t_max; t += dt){
         number_of_collisions_step = 0;
-        update(t);
+        update();
         save_number_of_sphere_collisions_to_file(t);
 
         if(save_positions == true)
