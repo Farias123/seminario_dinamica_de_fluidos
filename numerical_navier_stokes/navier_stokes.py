@@ -260,7 +260,7 @@ def generate_streamlines_data(velocity_archive, x_coord, y_coord, z_coord, spher
     vector_name = "f_38"
 
     # Criar sementes (exemplo: esfera de sementes)
-    seeds = pv.Sphere(radius=sphere_radius, center=(5 * sphere_radius, 2 * sphere_radius, 2 * sphere_radius))
+    seeds = pv.Sphere(radius= 4*sphere_radius, center =(5*sphere_radius, 2*sphere_radius, 2*sphere_radius), theta_resolution= 100, phi_resolution=100)
 
     # Gerar streamlines
     streamlines = mesh.streamlines_from_source(
@@ -307,7 +307,7 @@ def create_streamline_graph(velocity_archive, sphere_radius):
     vector_name = "f_38"
 
     # Criar sementes (exemplo: esfera de sementes)
-    seeds = pv.Sphere(radius=4 * sphere_radius, center=(5 * sphere_radius, 2 * sphere_radius, 2 * sphere_radius))
+    seeds = pv.Sphere(radius= 4*sphere_radius, center =(5*sphere_radius, 2*sphere_radius, 2*sphere_radius), theta_resolution= 50, phi_resolution=50)
 
     # Gerar streamlines
     streamlines = mesh.streamlines_from_source(
@@ -328,7 +328,7 @@ def create_streamline_graph(velocity_archive, sphere_radius):
     return print("Pica Top Bro")
 
 
-def extract_velocity_field(velocity_archive, reescaling_factor):
+def extract_velocity_field(velocity_archive, reescaling_factor, search_coords):
     reader = pv.PVDReader(velocity_archive)
 
     mesh = reader.read()[0]
@@ -339,16 +339,25 @@ def extract_velocity_field(velocity_archive, reescaling_factor):
     coords = np.asarray(mesh.points) * reescaling_factor
 
     velocity_coords_matrix = []
+    best_coords = []
+    searched_step = 0
 
     for i in range(velocity.shape[0]):
         velocity_coords_matrix.append([coords[i], velocity[i]])
 
-    print(velocity.shape, coords.shape)
-    print(velocity[0], coords[0], velocity_coords_matrix[0])
+    for j in range(coords.shape[0]):
+        dif_vector = coords[j] - search_coords
+        dif_vector_abs = np.sqrt(dif_vector[0] ** 2 + dif_vector[1] ** 2 + dif_vector[2] ** 2)
+        try_vector = coords[j] - best_coords
+        try_vector_abs = np.sqrt(try_vector[0] ** 2 + try_vector[1] ** 2 + try_vector[2] ** 2)
+
+        if dif_vector_abs < try_vector_abs:
+            best_coords = coords[j]
+            searched_step = j
 
     print("KRL BRO, levanta a calça aí meu mano")
 
-    return velocity_coords_matrix
+    return [coords[searched_step], velocity[searched_step]], velocity_coords_matrix
 
 
 if __name__ == "__main__":
