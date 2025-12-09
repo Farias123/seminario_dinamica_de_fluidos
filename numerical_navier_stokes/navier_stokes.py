@@ -328,8 +328,32 @@ def create_streamline_graph(velocity_archive, sphere_radius):
     return print("Pica Top Bro")
 
 
+def extract_velocity_field(velocity_archive, reescaling_factor):
+    reader = pv.PVDReader(velocity_archive)
+
+    mesh = reader.read()[0]
+
+    vector_name = "f_38"
+
+    velocity = np.asarray(mesh.point_data[vector_name]) * reescaling_factor
+    coords = np.asarray(mesh.points) * reescaling_factor
+
+    velocity_coords_matrix = []
+
+    for i in range(velocity.shape[0]):
+        velocity_coords_matrix.append([coords[i], velocity[i]])
+
+    print(velocity.shape, coords.shape)
+    print(velocity[0], coords[0], velocity_coords_matrix[0])
+
+    print("KRL BRO, levanta a calça aí meu mano")
+
+    return velocity_coords_matrix
+
+
 if __name__ == "__main__":
     # navier_stoker_solver(temperature=273.5, sphere_radius=8.35, kinematic_viscosity=1, inlet_velocity=8)
-    create_streamline_graph("results/u_next.pvd", sphere_radius=8.35)
-    generate_streamlines_data(velocity_archive="results/u_next.pvd", x_coord=0.5, y_coord=0.5, z_coord=0.5,
-                              sphere_radius=8.35, reescaling_factor=1e-7)
+    # create_streamline_graph("results/u_next.pvd", sphere_radius=8.35)
+    generate_streamlines_data(velocity_archive="results/u_next.pvd", x_coord=0.5, y_coord=0.5, z_coord=0.5, sphere_radius=8.35, reescaling_factor = 1e-7)
+    extract_velocity_field("results/u_next.pvd", 1e-7)
+
